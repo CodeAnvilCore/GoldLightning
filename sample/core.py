@@ -143,6 +143,7 @@ class yf_symbol:
                         + "Attempting to configure 'SE_MANAGER_PATH' as:\n"\
                         + f'{selenium_manager_path}'
             os.environ['SE_MANAGER_PATH'] = selenium_manager_path
+            warnings.warn(warn_str)
         """
         # Valid selenium webdrivers (browsers): TODO: expand support
         for other browsers.
