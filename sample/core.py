@@ -1,9 +1,5 @@
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.webdriver import ChromiumDriver
-from selenium.webdriver.safari.webdriver import WebDriver
-from selenium.webdriver.firefox.webdriver import WebDriver as FirefoxDriver
-from selenium.webdriver.ie.webdriver import WebDriver as InternetExplorerDriver
 import pandas as pd
 import numpy as np
 import time
@@ -109,52 +105,21 @@ class html_table:
         
 class yf_symbol:
     def __init__(self
-                 , symbol:str
-                 , time_range:str
-                 , webdriver_name = 'Firefox'):
+                 , symbol:str     = None
+                 , time_range:str = 'maximum'
+                 , webdriver      = None):
         # Valid time-ranges; aligned with yahoo finance options
         valid_time_dict = {'one_year'    : '1_Y'
                            , 'five_year' : '5_Y'
                            , 'maximum'   : 'MAX'}
-        valid_webdriver = ['Chrome'
-                           , 'Firefox']
-        # Selenium webdriver mapping
-        self.webdriver_map = {'Chrome'     : ChromiumDriver
-                              , 'Safari'   : WebDriver
-                              , 'Firefox'  : FirefoxDriver
-                              , 'IE'       : InternetExplorerDriver}
         # Input type check
         assert(all([isinstance(symbol, str)
                     , isinstance(time_range, str)
-                    , isinstance(webdriver_name, str)]))
+                    , (not webdriver is None)]))
         # Check time_range input aligned with yahoo finance options
         assert(time_range in valid_time_dict.keys())
-        # Check Selenium manager is configured in local environment
-        selenium_manager_path = os.getenv('SE_MANAGER_PATH')
-        if selenium_manager_path is None:
-            # Attempt to configure
-            python_exe = sys.executable
-            python_script_path_frags = python_exe.split('\\')[:-1]\
-                                       + ['Scripts'
-                                          , 'selenium-manager.exe']
-            selenium_manager_path = '\\'.join(python_script_path_frags)
-            warn_str = "Environment variable 'SE_MANAGER_PATH' not found;"\
-                        + 'Selenium may fail to initialise\n'\
-                        + "Attempting to configure 'SE_MANAGER_PATH' as:\n"\
-                        + f'{selenium_manager_path}'
-            os.environ['SE_MANAGER_PATH'] = selenium_manager_path
-            warnings.warn(warn_str)
-        """
-        # Valid selenium webdrivers (browsers): TODO: expand support
-        for other browsers.
-        """
-        if not (webdriver_name in valid_webdriver):
-            err_str = f'Support for:\n {webdriver_name}\nIs not currently supported.'
-            raise NotImplementedError(err_str)
-        else:
-            self.webdriver_name = webdriver_name
         # Inits
-        self.driver = None
+        self.driver = webdriver
         self.symbol = symbol
         self.html_tag_with_error   = 'span'
         self.html_tag_button       = 'button'
@@ -187,13 +152,9 @@ class yf_symbol:
         self.yahoo_datetime_format     = '%b %d, %Y'
         # Build yahoo finance url associated with user symbol
         self.url = f'https://finance.yahoo.com/quote/{self.symbol}/history/'
-        self.create_session()\
-            .navigate_page()\
+        self.navigate_page()\
             .get_symbol_table()\
             .get_coerced_data()
-    def create_session(self):
-        self.driver = self.webdriver_map[self.webdriver_name]()
-        return self
     def navigate_page(self):
         def __find_button_and_click__(button_attrib
                                       , button_attrib_value):
@@ -225,7 +186,7 @@ class yf_symbol:
         # Check that driver is loaded
         assert(not self.driver is None)
         # Navigate to yahoo finance page associated with user symbol
-        self.driver.get(self.url)
+        self.driver.get(url = self.url)
         # Check that yahoo has data for user symbol
         page_err_elements =\
             self.driver\
